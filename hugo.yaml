@@ -43,3 +43,5 @@ params:
   
   page:
     width: normal
+
+include: [".well-known"]
