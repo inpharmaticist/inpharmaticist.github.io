@@ -1,5 +1,5 @@
 # Hugo configuration file
-title: My Site
+title: San Diego Bitcoiners
 
 # import hextra as module
 module:
@@ -18,29 +18,19 @@ markup:
 
 menu:
   main:
-    - name: Docs
-      pageRef: /docs
-      weight: 1
-    - name: About
-      pageRef: /about
-      weight: 2
     - name: Contact ↗
-      url: "https://github.com/imfing"
-      weight: 3
-    - name: Search
-      weight: 4
-      params:
-        type: search
-    - name: GitHub
-      weight: 5
-      url: "https://github.com/imfing/hextra-starter-template"
-      params:
-        icon: github
+      url: "https://formstr.app/#/fill/f5ff29ea0fc13932da373f91dc0030998431f3626476acc8ff8a30bd78bf2c2a"
+      weight: 1
     - name: Twitter
-      weight: 6
-      url: "https://twitter.com/"
+      weight: 2
+      url: "https://twitter.com/sdbitcoiners"
       params:
         icon: x-twitter
+    - name: Nostr
+      weight: 3
+      url: "https://primal.net/p/npub1c0r3ytrr4afgrlhrhyec6y9wvkckdllx7ul3cfevtsgjqcrhx8tsdzqs7w"
+      params:
+        icon: user-add
 
 params:
   navbar:
@@ -50,7 +40,6 @@ params:
   footer:
     displayCopyright: false
     displayPoweredBy: true
-
-  editURL:
-    enable: true
-    base: "https://github.com/imfing/hextra-starter-template/edit/main/content"
+  
+  page:
+    width: normal
