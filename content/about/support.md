@@ -41,7 +41,7 @@ If you answer _yes_ to any of the questions above, you might benefit from hands-
 
 {{< hextra/feature-grid >}}
   {{< hextra/feature-card
-    subtitle="one"
+    subtitle="I've had the pleasure of working with Corey in the Bitcoin space, and I'm blown away by his expertise and enthusiasm. He took the time to understand my needs, clearly explained tradeoffs, and provided reliable sources to back up his guidance. What's more, he's incredibly responsive and always willing to lend a hand when needed. Corey's passion for Bitcoin is infectious, and his dedication to helping others is unparalleled. If you're looking for a knowledgeable and supportive consultant, Corey is your guy! -K"
   >}}
   {{< hextra/feature-card
     subtitle="two"
