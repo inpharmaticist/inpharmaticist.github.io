@@ -44,7 +44,7 @@ If you answer _yes_ to any of the questions above, you might benefit from hands-
     subtitle="I've had the pleasure of working with Corey in the Bitcoin space, and I'm blown away by his expertise and enthusiasm. He took the time to understand my needs, clearly explained tradeoffs, and provided reliable sources to back up his guidance. What's more, he's incredibly responsive and always willing to lend a hand when needed. Corey's passion for Bitcoin is infectious, and his dedication to helping others is unparalleled. If you're looking for a knowledgeable and supportive consultant, Corey is your guy! -K"
   >}}
   {{< hextra/feature-card
-    subtitle="two"
+    subtitle="Stepping into Bitcoin ownership was terrifying to me in many ways, though I was committed.  As my balance grew, so did the risk.  I fully understood the responsibility of self-custody.  When I met Corey, I was already pretty good.  I knew technology, ran my own node, had multi-signature wallets, etc."
   >}}
   {{< hextra/feature-card
     subtitle="Corey - the Super Hero of Crypto! Seriously, that's what I thought when I met him - he not only understands and uses cryptocurrency himself, but is also helping other people get excited about it. Corey has been an amazing resource - he patiently answers my questions and has provided invaluable guidance in navigating this new digital frontier. -Tori"
