@@ -124,7 +124,8 @@
   <script>
     (function() {
       // jsonify ensures proper quoting for JavaScript
-      const RECIPIENT_NPUB = {{ .Get "npub" | default "npub1c0r3ytrr4afgrlhrhyec6y9wvkckdllx7ul3cfevtsgjqcrhx8tsdzqs7w" | jsonify }};
+      const RECIPIENT_NPUB = "npub180cvv07tjdrrgpa0j7j7tmnyl2yr6yr7l8j4s3evf6u64th6gkwsyjh6w6";
+
       const RELAYS = {{ .Get "relays" | default `["wss://relay.damus.io","wss://nos.lol"]` | jsonify }};
       
       console.log("Debug - npub:", RECIPIENT_NPUB);
