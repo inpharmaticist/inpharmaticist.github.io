@@ -6,18 +6,19 @@
       font-family: inherit;
       color: #000;
     }
+    .nostr-contact-wrapper .form-group {
+      margin-bottom: 1.5rem;
+    }
     .nostr-contact-wrapper label {
       display: block;
       margin-bottom: 0.5rem;
       font-weight: 600;
       font-size: 0.9rem;
-      color: #000;  /* Light mode: black */
+      color: #000;
     }
-    /* Dark mode override */
     .dark .nostr-contact-wrapper label {
-      color: #fff;  /* Dark mode: white */
+      color: #fff;
     }
-    
     .nostr-contact-wrapper input,
     .nostr-contact-wrapper textarea {
       width: 100%;
@@ -28,22 +29,29 @@
       font-size: 1rem;
       color: #000;
     }
-    /* Optional: Dark mode input styling */
+    .nostr-contact-wrapper input::placeholder,
+    .nostr-contact-wrapper textarea::placeholder {
+      color: #6b7280;
+    }
+    .nostr-contact-wrapper input:focus,
+    .nostr-contact-wrapper textarea:focus {
+      outline: 2px solid #3b82f6;
+      outline-offset: -1px;
+    }
     .dark .nostr-contact-wrapper input,
     .dark .nostr-contact-wrapper textarea {
       background: #1f2937;
-      border-color: #374151;
+      border-color: #4b5563;
       color: #fff;
     }
-    
     .nostr-contact-wrapper small {
       display: block;
       margin-top: 0.25rem;
-      color: #374151;  /* Light mode */
+      color: #374151;
       font-size: 0.875rem;
     }
     .dark .nostr-contact-wrapper small {
-      color: #9ca3af;  /* Dark mode: lighter grey */
+      color: #9ca3af;
     }
     .nostr-contact-wrapper button {
       background: #111827;
@@ -53,13 +61,11 @@
       font-weight: 600;
       width: 100%;
       cursor: pointer;
-      border: none;  /* Ensure no default borders */
+      border: none;
     }
     .nostr-contact-wrapper button:hover {
       background: #374151;
     }
-    
-    /* Dark mode: Invert button to light */
     .dark .nostr-contact-wrapper button {
       background: #fff;
       color: #000;
@@ -67,7 +73,38 @@
     .dark .nostr-contact-wrapper button:hover {
       background: #e5e7eb;
     }
-
+    .nostr-contact-wrapper button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    #nc-status {
+      margin-top: 1rem;
+      padding: 1rem;
+      border-radius: 0.375rem;
+      display: none;
+    }
+    #nc-status.success {
+      display: block;
+      background: #f0fdf4;
+      border: 1px solid #86efac;
+      color: #166534;
+    }
+    .dark #nc-status.success {
+      background: #064e3b;
+      border-color: #059669;
+      color: #d1fae5;
+    }
+    #nc-status.error {
+      display: block;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+    }
+    .dark #nc-status.error {
+      background: #7f1d1d;
+      border-color: #dc2626;
+      color: #fee2e2;
+    }
   </style>
 
   <form id="nostr-contact-form" onsubmit="return false;">
@@ -125,8 +162,7 @@
             name: document.getElementById('nc-name').value,
             contact: document.getElementById('nc-contact').value,
             message: document.getElementById('nc-message').value,
-            timestamp: new Date().toISOString(),
-            source: 'sdbitcoiners.com'
+            timestamp: new Date().toISOString()
           }));
           
           const event = {
@@ -145,26 +181,30 @@
               const timeout = setTimeout(() => { ws.close(); resolve(false); }, 5000);
               ws.onopen = () => ws.send(JSON.stringify(['EVENT', event]));
               ws.onmessage = (msg) => {
-                const data = JSON.parse(msg.data);
-                if (data[0] === 'OK' && data[1] === event.id) {
-                  clearTimeout(timeout);
-                  ws.close();
-                  resolve(true);
-                }
+                try {
+                  const data = JSON.parse(msg.data);
+                  if (data[0] === 'OK' && data[1] === event.id) {
+                    clearTimeout(timeout);
+                    ws.close();
+                    resolve(true);
+                  }
+                } catch(e) {}
               };
               ws.onerror = () => { clearTimeout(timeout); ws.close(); resolve(false); };
+              ws.onclose = () => { clearTimeout(timeout); resolve(false); };
             })
           ));
           
           const count = results.filter(r => r).length;
           if (count > 0) {
-            status.innerHTML = `<strong>Message sent!</strong><br>Published to ${count} relay(s)`;
+            status.innerHTML = '<strong>Message sent!</strong><br>Published to ' + count + ' relay(s)';
             status.className = 'success';
             document.getElementById('nostr-contact-form').reset();
           } else {
             throw new Error('No relays accepted');
           }
         } catch(err) {
+          console.error(err);
           status.innerHTML = '<strong>Error:</strong> Failed to send. Try again later.';
           status.className = 'error';
         } finally {
