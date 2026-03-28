@@ -1,0 +1,176 @@
+<div class="nostr-contact-wrapper not-prose">
+  <style>
+    .nostr-contact-wrapper {
+      max-width: 600px;
+      margin: 2rem 0;
+      font-family: inherit;
+    }
+    .nostr-contact-wrapper .form-group {
+      margin-bottom: 1.5rem;
+    }
+    .nostr-contact-wrapper label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    .nostr-contact-wrapper input,
+    .nostr-contact-wrapper textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #e5e7eb;
+      border-radius: 0.375rem;
+      background: white;
+      font-size: 1rem;
+    }
+    .nostr-contact-wrapper input:focus,
+    .nostr-contact-wrapper textarea:focus {
+      outline: 2px solid #3b82f6;
+      outline-offset: -1px;
+    }
+    .nostr-contact-wrapper small {
+      display: block;
+      margin-top: 0.25rem;
+      color: #6b7280;
+      font-size: 0.875rem;
+    }
+    .nostr-contact-wrapper button {
+      background: #111827;
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.375rem;
+      font-weight: 600;
+      width: 100%;
+      cursor: pointer;
+    }
+    .nostr-contact-wrapper button:hover {
+      background: #374151;
+    }
+    .nostr-contact-wrapper button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .nostr-contact-wrapper #status {
+      margin-top: 1rem;
+      padding: 1rem;
+      border-radius: 0.375rem;
+      display: none;
+    }
+    .nostr-contact-wrapper #status.success {
+      display: block;
+      background: #f0fdf4;
+      border: 1px solid #86efac;
+      color: #166534;
+    }
+    .nostr-contact-wrapper #status.error {
+      display: block;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+    }
+  </style>
+
+  <form id="nostr-contact-form" onsubmit="return false;">
+    <div class="form-group">
+      <label for="nc-name">Name</label>
+      <input type="text" id="nc-name" required>
+    </div>
+    <div class="form-group">
+      <label for="nc-contact">Contact Info</label>
+      <input type="text" id="nc-contact" placeholder="email@example.com" required>
+      <small>How you want to be contacted back</small>
+    </div>
+    <div class="form-group">
+      <label for="nc-message">Message</label>
+      <textarea id="nc-message" rows="5" required></textarea>
+    </div>
+    <button type="submit" id="nc-submit">Send Message</button>
+  </form>
+  <div id="nc-status"></div>
+
+  <script src="https://unpkg.com/nostr-tools@1.17.0/lib/nostr.bundle.js"></script>
+  <script>
+    (function() {
+      const RECIPIENT_NPUB = {{ .Get "npub" | default "npub1c0r3ytrr4afgrlhrhyec6y9wvkckdllx7ul3cfevtsgjqcrhx8tsdzqs7w" }};
+      const RELAYS = {{ .Get "relays" | default `["wss://relay.damus.io","wss://nos.lol"]` | safeJS }};
+      
+      let RECIPIENT_HEX;
+      try {
+        RECIPIENT_HEX = window.NostrTools.nip19.decode(RECIPIENT_NPUB).data;
+      } catch(e) {
+        console.error("Invalid npub");
+      }
+
+      document.getElementById('nostr-contact-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('nc-submit');
+        const status = document.getElementById('nc-status');
+        
+        if (!RECIPIENT_HEX) {
+          status.innerHTML = '<strong>Config error:</strong> Invalid npub';
+          status.className = 'error';
+          return;
+        }
+        
+        btn.disabled = true;
+        btn.textContent = 'Sending...';
+        status.className = '';
+        status.style.display = 'none';
+        
+        try {
+          const sk = window.NostrTools.generatePrivateKey();
+          const pk = window.NostrTools.getPublicKey(sk);
+          
+          const content = await window.NostrTools.nip04.encrypt(sk, RECIPIENT_HEX, JSON.stringify({
+            name: document.getElementById('nc-name').value,
+            contact: document.getElementById('nc-contact').value,
+            message: document.getElementById('nc-message').value,
+            timestamp: new Date().toISOString()
+          }));
+          
+          const event = {
+            kind: 4,
+            pubkey: pk,
+            created_at: Math.floor(Date.now() / 1000),
+            tags: [['p', RECIPIENT_HEX]],
+            content: content
+          };
+          event.id = window.NostrTools.getEventHash(event);
+          event.sig = window.NostrTools.signEvent(event, sk);
+          
+          const results = await Promise.all(RELAYS.map(url => 
+            new Promise(resolve => {
+              const ws = new WebSocket(url);
+              const timeout = setTimeout(() => { ws.close(); resolve(false); }, 5000);
+              ws.onopen = () => ws.send(JSON.stringify(['EVENT', event]));
+              ws.onmessage = (msg) => {
+                const data = JSON.parse(msg.data);
+                if (data[0] === 'OK' && data[1] === event.id) {
+                  clearTimeout(timeout);
+                  ws.close();
+                  resolve(true);
+                }
+              };
+              ws.onerror = () => { clearTimeout(timeout); ws.close(); resolve(false); };
+            })
+          ));
+          
+          const count = results.filter(r => r).length;
+          if (count > 0) {
+            status.innerHTML = `<strong>Message sent!</strong><br>Published to ${count} relay(s)`;
+            status.className = 'success';
+            document.getElementById('nostr-contact-form').reset();
+          } else {
+            throw new Error('No relays accepted');
+          }
+        } catch(err) {
+          status.innerHTML = '<strong>Error:</strong> Failed to send. Try again later.';
+          status.className = 'error';
+        } finally {
+          btn.disabled = false;
+          btn.textContent = 'Send Message';
+        }
+      });
+    })();
+  </script>
+</div>
