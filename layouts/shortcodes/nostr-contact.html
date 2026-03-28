@@ -128,90 +128,31 @@
   <script src="https://unpkg.com/nostr-tools@1.17.0/lib/nostr.bundle.js"></script>
   <script>
     (function() {
-      const RECIPIENT_NPUB = "{{ .Get "npub" | default "npub1c0r3ytrr4afgrlhrhyec6y9wvkckdllx7ul3cfevtsgjqcrhx8tsdzqs7w" }}";
-      const RELAYS = {{ .Get "relays" | default `["wss://relay.damus.io","wss://nos.lol"]` | safeJS }};
+      // Debug: Log what we received
+      const rawNpub = {{ .Get "npub" | default "npub1c0r3ytrr4afgrlhrhyec6y9wvkckdllx7ul3cfevtsgjqcrhx8tsdzqs7w" | jsonify }};
+      console.log("Raw npub string:", rawNpub);
+      console.log("NostrTools loaded?", typeof window.NostrTools);
       
+      const RECIPIENT_NPUB = rawNpub;
       let RECIPIENT_HEX;
+      
       try {
-        RECIPIENT_HEX = window.NostrTools.nip19.decode(RECIPIENT_NPUB).data;
+        if (!window.NostrTools) throw new Error("NostrTools not loaded");
+        if (!window.NostrTools.nip19) throw new Error("nip19 not available");
+        
+        const decoded = window.NostrTools.nip19.decode(RECIPIENT_NPUB);
+        console.log("Decoded result:", decoded);
+        RECIPIENT_HEX = decoded.data;
       } catch(e) {
-        console.error("Invalid npub");
+        console.error("Decode error:", e.message);
+        console.error("Full error:", e);
       }
-
+  
+      // Rest of your code...
       document.getElementById('nostr-contact-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const btn = document.getElementById('nc-submit');
-        const status = document.getElementById('nc-status');
-        
-        if (!RECIPIENT_HEX) {
-          status.innerHTML = '<strong>Config error:</strong> Invalid npub';
-          status.className = 'error';
-          return;
-        }
-        
-        btn.disabled = true;
-        btn.textContent = 'Sending...';
-        status.className = '';
-        status.style.display = 'none';
-        
-        try {
-          const sk = window.NostrTools.generatePrivateKey();
-          const pk = window.NostrTools.getPublicKey(sk);
-          
-          const content = await window.NostrTools.nip04.encrypt(sk, RECIPIENT_HEX, JSON.stringify({
-            name: document.getElementById('nc-name').value,
-            contact: document.getElementById('nc-contact').value,
-            message: document.getElementById('nc-message').value,
-            timestamp: new Date().toISOString()
-          }));
-          
-          const event = {
-            kind: 4,
-            pubkey: pk,
-            created_at: Math.floor(Date.now() / 1000),
-            tags: [['p', RECIPIENT_HEX]],
-            content: content
-          };
-          event.id = window.NostrTools.getEventHash(event);
-          event.sig = window.NostrTools.signEvent(event, sk);
-          
-          const results = await Promise.all(RELAYS.map(url => 
-            new Promise(resolve => {
-              const ws = new WebSocket(url);
-              const timeout = setTimeout(() => { ws.close(); resolve(false); }, 5000);
-              ws.onopen = () => ws.send(JSON.stringify(['EVENT', event]));
-              ws.onmessage = (msg) => {
-                try {
-                  const data = JSON.parse(msg.data);
-                  if (data[0] === 'OK' && data[1] === event.id) {
-                    clearTimeout(timeout);
-                    ws.close();
-                    resolve(true);
-                  }
-                } catch(e) {}
-              };
-              ws.onerror = () => { clearTimeout(timeout); ws.close(); resolve(false); };
-              ws.onclose = () => { clearTimeout(timeout); resolve(false); };
-            })
-          ));
-          
-          const count = results.filter(r => r).length;
-          if (count > 0) {
-            status.innerHTML = '<strong>Message sent!</strong><br>Published to ' + count + ' relay(s)';
-            status.className = 'success';
-            document.getElementById('nostr-contact-form').reset();
-          } else {
-            throw new Error('No relays accepted');
-          }
-        } catch(err) {
-          console.error(err);
-          status.innerHTML = '<strong>Error:</strong> Failed to send. Try again later.';
-          status.className = 'error';
-        } finally {
-          btn.disabled = false;
-          btn.textContent = 'Send Message';
-        }
+        // ... keep existing submit handler code ...
       });
     })();
   </script>
+
 </div>
