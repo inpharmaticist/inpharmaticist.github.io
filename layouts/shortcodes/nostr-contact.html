@@ -45,6 +45,29 @@
     .dark .nostr-contact-wrapper small {
       color: #9ca3af;  /* Dark mode: lighter grey */
     }
+    .nostr-contact-wrapper button {
+      background: #111827;
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.375rem;
+      font-weight: 600;
+      width: 100%;
+      cursor: pointer;
+      border: none;  /* Ensure no default borders */
+    }
+    .nostr-contact-wrapper button:hover {
+      background: #374151;
+    }
+    
+    /* Dark mode: Invert button to light */
+    .dark .nostr-contact-wrapper button {
+      background: #fff;
+      color: #000;
+    }
+    .dark .nostr-contact-wrapper button:hover {
+      background: #e5e7eb;
+    }
+
   </style>
 
   <form id="nostr-contact-form" onsubmit="return false;">
