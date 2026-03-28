@@ -33,11 +33,6 @@
     .nostr-contact-wrapper textarea::placeholder {
       color: #6b7280;
     }
-    .nostr-contact-wrapper input:focus,
-    .nostr-contact-wrapper textarea:focus {
-      outline: 2px solid #3b82f6;
-      outline-offset: -1px;
-    }
     .dark .nostr-contact-wrapper input,
     .dark .nostr-contact-wrapper textarea {
       background: #1f2937;
@@ -128,31 +123,133 @@
   <script src="https://unpkg.com/nostr-tools@1.17.0/lib/nostr.bundle.js"></script>
   <script>
     (function() {
-      // Debug: Log what we received
-      const rawNpub = {{ .Get "npub" | default "npub1c0r3ytrr4afgrlhrhyec6y9wvkckdllx7ul3cfevtsgjqcrhx8tsdzqs7w" | jsonify }};
-      console.log("Raw npub string:", rawNpub);
-      console.log("NostrTools loaded?", typeof window.NostrTools);
+      // jsonify ensures proper quoting for JavaScript
+      const RECIPIENT_NPUB = {{ .Get "npub" | default "npub1c0r3ytrr4afgrlhrhyec6y9wvkckdllx7ul3cfevtsgjqcrhx8tsdzqs7w" | jsonify }};
+      const RELAYS = {{ .Get "relays" | default `["wss://relay.damus.io","wss://nos.lol"]` | jsonify }};
       
-      const RECIPIENT_NPUB = rawNpub;
-      let RECIPIENT_HEX;
+      console.log("Debug - npub:", RECIPIENT_NPUB);
+      console.log("Debug - relays:", RELAYS);
+      
+      let RECIPIENT_HEX = null;
+      const statusDiv = document.getElementById('nc-status');
       
       try {
-        if (!window.NostrTools) throw new Error("NostrTools not loaded");
-        if (!window.NostrTools.nip19) throw new Error("nip19 not available");
-        
+        if (typeof window.NostrTools === 'undefined') {
+          throw new Error("NostrTools library not loaded");
+        }
         const decoded = window.NostrTools.nip19.decode(RECIPIENT_NPUB);
-        console.log("Decoded result:", decoded);
         RECIPIENT_HEX = decoded.data;
-      } catch(e) {
-        console.error("Decode error:", e.message);
-        console.error("Full error:", e);
+        console.log("Debug - hex pubkey:", RECIPIENT_HEX);
+      } catch (e) {
+        console.error("Failed to decode npub:", e);
+        if (statusDiv) {
+          statusDiv.innerHTML = '<strong>Configuration error:</strong> ' + e.message;
+          statusDiv.className = 'error';
+          statusDiv.style.display = 'block';
+        }
+        return; // Stop here - don't attach event listener if config is bad
       }
-  
-      // Rest of your code...
-      document.getElementById('nostr-contact-form').addEventListener('submit', async (e) => {
-        // ... keep existing submit handler code ...
+
+      const form = document.getElementById('nostr-contact-form');
+      const btn = document.getElementById('nc-submit');
+      
+      if (!form || !btn) {
+        console.error("Form elements not found");
+        return;
+      }
+
+      form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        btn.disabled = true;
+        btn.textContent = 'Sending...';
+        statusDiv.className = '';
+        statusDiv.style.display = 'none';
+        
+        try {
+          const sk = window.NostrTools.generatePrivateKey();
+          const pk = window.NostrTools.getPublicKey(sk);
+          
+          const messageData = {
+            name: document.getElementById('nc-name').value,
+            contact: document.getElementById('nc-contact').value,
+            message: document.getElementById('nc-message').value,
+            timestamp: new Date().toISOString()
+          };
+          
+          const encryptedContent = await window.NostrTools.nip04.encrypt(
+            sk, 
+            RECIPIENT_HEX, 
+            JSON.stringify(messageData)
+          );
+          
+          const event = {
+            kind: 4,
+            pubkey: pk,
+            created_at: Math.floor(Date.now() / 1000),
+            tags: [['p', RECIPIENT_HEX]],
+            content: encryptedContent
+          };
+          
+          event.id = window.NostrTools.getEventHash(event);
+          event.sig = window.NostrTools.signEvent(event, sk);
+          
+          let successCount = 0;
+          const results = await Promise.all(RELAYS.map(url => {
+            return new Promise(resolve => {
+              const ws = new WebSocket(url);
+              const timeout = setTimeout(() => {
+                ws.close();
+                resolve(false);
+              }, 5000);
+              
+              ws.onopen = () => {
+                ws.send(JSON.stringify(['EVENT', event]));
+              };
+              
+              ws.onmessage = (msg) => {
+                try {
+                  const data = JSON.parse(msg.data);
+                  if (data[0] === 'OK' && data[1] === event.id) {
+                    clearTimeout(timeout);
+                    ws.close();
+                    resolve(true);
+                  }
+                } catch(e) {}
+              };
+              
+              ws.onerror = () => {
+                clearTimeout(timeout);
+                ws.close();
+                resolve(false);
+              };
+              
+              ws.onclose = () => {
+                clearTimeout(timeout);
+                resolve(false);
+              };
+            });
+          }));
+          
+          successCount = results.filter(r => r).length;
+          
+          if (successCount > 0) {
+            statusDiv.innerHTML = '<strong>Message sent!</strong><br>Published to ' + successCount + ' relay(s).';
+            statusDiv.className = 'success';
+            form.reset();
+          } else {
+            throw new Error('No relays accepted the message. Check console for details.');
+          }
+          
+        } catch (error) {
+          console.error("Send error:", error);
+          statusDiv.innerHTML = '<strong>Error:</strong> ' + error.message;
+          statusDiv.className = 'error';
+        } finally {
+          btn.disabled = false;
+          btn.textContent = 'Send Message';
+        }
       });
     })();
   </script>
-
 </div>
