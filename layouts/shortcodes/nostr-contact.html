@@ -128,8 +128,7 @@
   <script src="https://unpkg.com/nostr-tools@1.17.0/lib/nostr.bundle.js"></script>
   <script>
     (function() {
-      const RECIPIENT_NPUB = {{ .Get "npub" | default "npub1c0r3ytrr4afgrlhrhyec6y9wvkckdllx7ul3cfevtsgjqcrhx8tsdzqs7w" | jsonify }};
-
+      const RECIPIENT_NPUB = "{{ .Get "npub" | default "npub1c0r3ytrr4afgrlhrhyec6y9wvkckdllx7ul3cfevtsgjqcrhx8tsdzqs7w" }}";
       const RELAYS = {{ .Get "relays" | default `["wss://relay.damus.io","wss://nos.lol"]` | safeJS }};
       
       let RECIPIENT_HEX;
